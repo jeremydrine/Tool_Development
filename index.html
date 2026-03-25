@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>iPhone Sensor Reader</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: Canvas;
+      --fg: CanvasText;
+      --muted: GrayText;
+      --card: color-mix(in srgb, Canvas 92%, CanvasText 8%);
+      --border: color-mix(in srgb, CanvasText 18%, Canvas 82%);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+      padding: 16px;
+      line-height: 1.4;
+    }
+    h1 { font-size: 1.5rem; margin: 0 0 8px; }
+    p { margin: 0 0 12px; }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px;
+      background: var(--card);
+    }
+    button {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      font: inherit;
+      cursor: pointer;
+      background: transparent;
+      color: inherit;
+      width: 100%;
+    }
+    button:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+    .label {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+    .value {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .ok { color: #0a8f3d; }
+    .warn { color: #b66a00; }
+    .err { color: #c62828; }
+    .small { font-size: 0.9rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <div class="grid">
+    <div class="card">
+      <h1>iPhone Sensor Reader</h1>
+      <p>Tap the button to request access to motion/orientation sensors and start reading live data.</p>
+      <button id="startBtn">Start sensors</button>
+      <p id="status" class="small">Status: idle</p>
+      <p class="small">
+        On iPhone, motion/orientation access usually requires a user gesture and permission prompt in Safari.
+        This page works best over HTTPS or localhost.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="label">Device orientation</div>
+      <div id="orientation" class="value">Waiting…</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Device motion</div>
+      <div id="motion" class="value">Waiting…</div>
+    </div>
+
+    <div class="card">
+      <div class="label">Notes</div>
+      <div class="value small">
+        alpha/beta/gamma = orientation angles\n
+        acc = acceleration without gravity\n
+        acc+g = acceleration including gravity\n
+        rot = gyroscope rotation rate
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const statusEl = document.getElementById('status');
+    const orientationEl = document.getElementById('orientation');
+    const motionEl = document.getElementById('motion');
+
+    let listening = false;
+
+    function fmt(v, digits = 3) {
+      return (typeof v === 'number' && Number.isFinite(v)) ? v.toFixed(digits) : 'n/a';
+    }
+
+    function setStatus(text, cls = '') {
+      statusEl.className = `small ${cls}`.trim();
+      statusEl.textContent = `Status: ${text}`;
+    }
+
+    function handleOrientation(event) {
+      orientationEl.textContent =
+        `alpha (z): ${fmt(event.alpha)}°\n` +
+        `beta  (x): ${fmt(event.beta)}°\n` +
+        `gamma (y): ${fmt(event.gamma)}°\n` +
+        `absolute: ${String(event.absolute)}`;
+    }
+
+    function handleMotion(event) {
+      const a = event.acceleration || {};
+      const ag = event.accelerationIncludingGravity || {};
+      const r = event.rotationRate || {};
+
+      motionEl.textContent =
+        `interval: ${fmt(event.interval, 1)} ms\n\n` +
+        `acc x: ${fmt(a.x)} m/s²\n` +
+        `acc y: ${fmt(a.y)} m/s²\n` +
+        `acc z: ${fmt(a.z)} m/s²\n\n` +
+        `acc+g x: ${fmt(ag.x)} m/s²\n` +
+        `acc+g y: ${fmt(ag.y)} m/s²\n` +
+        `acc+g z: ${fmt(ag.z)} m/s²\n\n` +
+        `rot alpha: ${fmt(r.alpha)} °/s\n` +
+        `rot beta:  ${fmt(r.beta)} °/s\n` +
+        `rot gamma: ${fmt(r.gamma)} °/s`;
+    }
+
+    async function requestIfNeeded(EventType) {
+      if (typeof EventType === 'undefined') return 'unsupported';
+      if (typeof EventType.requestPermission === 'function') {
+        return await EventType.requestPermission();
+      }
+      return 'granted';
+    }
+
+    async function startSensors() {
+      if (listening) return;
+
+      const secureContextNeeded = location.protocol === 'https:' ||
+                                  location.hostname === 'localhost' ||
+                                  location.hostname === '127.0.0.1';
+
+      if (!secureContextNeeded) {
+        setStatus('this page may be blocked unless served from HTTPS or localhost', 'warn');
+      } else {
+        setStatus('requesting permission…');
+      }
+
+      try {
+        const motionPermission = await requestIfNeeded(window.DeviceMotionEvent);
+        const orientationPermission = await requestIfNeeded(window.DeviceOrientationEvent);
+
+        const motionOK = (motionPermission === 'granted' || motionPermission === 'unsupported');
+        const orientationOK = (orientationPermission === 'granted' || orientationPermission === 'unsupported');
+
+        if (!motionOK && !orientationOK) {
+          setStatus('permission denied or unavailable', 'err');
+          return;
+        }
+
+        if ('DeviceOrientationEvent' in window) {
+          window.addEventListener('deviceorientation', handleOrientation, true);
+        } else {
+          orientationEl.textContent = 'DeviceOrientationEvent is not available in this browser.';
+        }
+
+        if ('DeviceMotionEvent' in window) {
+          window.addEventListener('devicemotion', handleMotion, true);
+        } else {
+          motionEl.textContent = 'DeviceMotionEvent is not available in this browser.';
+        }
+
+        listening = true;
+        startBtn.disabled = true;
+        startBtn.textContent = 'Sensors running';
+        setStatus('streaming sensor data', 'ok');
+      } catch (err) {
+        setStatus(`error: ${err && err.message ? err.message : String(err)}`, 'err');
+      }
+    }
+
+    startBtn.addEventListener('click', startSensors);
+  </script>
+</body>
+</html>
