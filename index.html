@@ -3,203 +3,862 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>iPhone Sensor Reader</title>
+  <title>iPhone Alignment Assistant</title>
   <style>
-    :root {
+    :root{
       color-scheme: light dark;
-      --bg: Canvas;
-      --fg: CanvasText;
-      --muted: GrayText;
-      --card: color-mix(in srgb, Canvas 92%, CanvasText 8%);
-      --border: color-mix(in srgb, CanvasText 18%, Canvas 82%);
+      --bg:#0b0d12;
+      --panel:#151a22;
+      --panel2:#1d2430;
+      --text:#f2f5f8;
+      --muted:#a8b0bc;
+      --line:#2d3645;
+      --accent:#67b3ff;
+      --good:#3ddc97;
+      --warn:#ffb454;
+      --bad:#ff6b6b;
     }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      background: var(--bg);
-      color: var(--fg);
-      padding: 16px;
-      line-height: 1.4;
+    @media (prefers-color-scheme: light){
+      :root{
+        --bg:#f4f7fb;
+        --panel:#ffffff;
+        --panel2:#f4f7fb;
+        --text:#101418;
+        --muted:#5e6875;
+        --line:#d7dde7;
+        --accent:#1769ff;
+        --good:#0d8f55;
+        --warn:#9d6000;
+        --bad:#b42318;
+      }
     }
-    h1 { font-size: 1.5rem; margin: 0 0 8px; }
-    p { margin: 0 0 12px; }
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 12px;
-      max-width: 900px;
-      margin: 0 auto;
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+      line-height:1.35;
     }
-    .card {
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 14px;
-      background: var(--card);
+    .wrap{max-width:1080px;margin:0 auto;padding:14px;display:grid;gap:12px}
+    .card{
+      background:var(--panel);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:14px;
+      box-shadow:0 1px 0 rgba(0,0,0,.04);
     }
-    button {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 14px;
-      font: inherit;
-      cursor: pointer;
-      background: transparent;
-      color: inherit;
-      width: 100%;
+    h1,h2,h3,p{margin:0}
+    h1{font-size:1.55rem}
+    h2{font-size:1.08rem;margin-bottom:8px}
+    h3{font-size:.98rem;margin-bottom:8px}
+    .sub{color:var(--muted);margin-top:6px}
+    .grid{display:grid;gap:12px}
+    .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+    .btnrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:12px}
+    button,input,select,textarea{
+      width:100%;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:var(--panel2);
+      color:var(--text);
+      padding:12px 14px;
+      font:inherit;
     }
-    button:disabled {
-      opacity: 0.6;
-      cursor: default;
+    textarea{min-height:90px;resize:vertical}
+    button{font-weight:700}
+    button.primary{background:var(--accent);color:#fff;border-color:transparent}
+    button.good{background:var(--good);color:#fff;border-color:transparent}
+    button.warn{background:var(--warn);color:#111;border-color:transparent}
+    button.bad{background:var(--bad);color:#fff;border-color:transparent}
+    .meter{
+      display:grid;place-items:center;min-height:190px;border-radius:18px;
+      border:1px solid var(--line);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.03), transparent 60%),
+        linear-gradient(180deg, rgba(255,255,255,.03), transparent);
+      text-align:center;padding:12px;
     }
-    .label {
-      color: var(--muted);
-      font-size: 0.9rem;
-      margin-bottom: 6px;
-    }
-    .value {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 0.95rem;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .ok { color: #0a8f3d; }
-    .warn { color: #b66a00; }
-    .err { color: #c62828; }
-    .small { font-size: 0.9rem; color: var(--muted); }
+    .big{font-size:3.2rem;font-weight:800;line-height:1;letter-spacing:-.03em;font-variant-numeric:tabular-nums}
+    .small{font-size:.92rem;color:var(--muted)}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+    .pill{display:inline-block;padding:5px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted);font-size:.86rem}
+    .ok{color:var(--good)} .warntext{color:var(--warn)} .badtext{color:var(--bad)}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{width:auto;padding:10px 14px}
+    .tab.active{background:var(--accent);color:#fff;border-color:transparent}
+    .panel{display:none}
+    .panel.active{display:block}
+    table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+    th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+    .hint{font-size:.9rem;color:var(--muted);margin-top:8px}
+    .tight{display:grid;gap:8px}
+    .footer{color:var(--muted);font-size:.9rem}
+    .sectionline{height:1px;background:var(--line);margin:4px 0}
+    .label{font-size:.87rem;color:var(--muted);margin-bottom:6px}
   </style>
 </head>
 <body>
-  <div class="grid">
+  <div class="wrap">
     <div class="card">
-      <h1>iPhone Sensor Reader</h1>
-      <p>Tap the button to request access to motion/orientation sensors and start reading live data.</p>
-      <button id="startBtn">Start sensors</button>
-      <p id="status" class="small">Status: idle</p>
-      <p class="small">
-        On iPhone, motion/orientation access usually requires a user gesture and permission prompt in Safari.
-        This page works best over HTTPS or localhost.
+      <h1>iPhone Alignment Assistant</h1>
+      <p class="sub">
+        Uses the iPhone sensors for <strong>camber</strong>, adds a <strong>reference-plane zero</strong>,
+        walks through a <strong>caster sweep</strong>, and includes a <strong>toe calculator</strong> for string or straight-edge measurements.
+      </p>
+      <div class="btnrow">
+        <button id="startBtn" class="primary">Start sensors</button>
+        <button id="holdBtn">Freeze live reading</button>
+        <button id="zeroBtn">Set reference zero</button>
+        <button id="clearZeroBtn">Clear zero</button>
+      </div>
+      <p id="status" class="hint">Status: idle</p>
+      <p class="hint">
+        Best used in <strong>Safari on iPhone over HTTPS</strong>. Hold the phone in <strong>portrait</strong>, flat against the reference surface or wheel/rotor/hub face.
       </p>
     </div>
 
-    <div class="card">
-      <div class="label">Device orientation</div>
-      <div id="orientation" class="value">Waiting…</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Device motion</div>
-      <div id="motion" class="value">Waiting…</div>
-    </div>
-
-    <div class="card">
-      <div class="label">Notes</div>
-      <div class="value small">
-        alpha/beta/gamma = orientation angles\n
-        acc = acceleration without gravity\n
-        acc+g = acceleration including gravity\n
-        rot = gyroscope rotation rate
+    <div class="cols">
+      <div class="card">
+        <h2>Live inclinometer</h2>
+        <div class="meter">
+          <div>
+            <div id="liveValue" class="big">--.-°</div>
+            <div id="liveLabel" class="small">waiting for sensor data</div>
+          </div>
+        </div>
+        <div class="tight" style="margin-top:12px">
+          <div><span class="pill">Reference zero</span> <span id="zeroValue" class="mono">0.00°</span></div>
+          <div><span class="pill">Raw angle</span> <span id="rawValue" class="mono">--.-°</span></div>
+          <div><span class="pill">Filtered state</span> <span id="filterState" class="mono">warming up</span></div>
+          <div><span class="pill">Phone mode</span> <span class="mono">portrait against flat surface</span></div>
+        </div>
+        <p class="hint">
+          Use <strong>Set reference zero</strong> with the phone on a known plane on the car or a known level/vertical reference.
+          Then move the phone to the wheel surface to read relative wheel lean.
+        </p>
       </div>
+
+      <div class="card">
+        <h2>Quick workflow</h2>
+        <ol class="small" style="padding-left:18px; margin:0; display:grid; gap:8px;">
+          <li>Park on the flattest surface you can manage.</li>
+          <li>Tap <strong>Start sensors</strong> and allow motion access.</li>
+          <li>Place the phone on a reference plane and tap <strong>Set reference zero</strong>.</li>
+          <li>Measure and capture camber at each wheel.</li>
+          <li>For caster, steer to equal left/right angles and capture both readings.</li>
+          <li>For toe, use strings or straight edges and type in your front/rear gaps.</li>
+        </ol>
+        <p class="hint">
+          The phone gives you good tilt data. Toe still needs an external direction reference, and caster still needs a known steering angle.
+        </p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" data-tab="camber">Camber</button>
+        <button class="tab" data-tab="caster">Caster</button>
+        <button class="tab" data-tab="toe">Toe helper</button>
+        <button class="tab" data-tab="job">Job / export</button>
+      </div>
+    </div>
+
+    <div id="panel-camber" class="card panel active">
+      <h2>Camber capture</h2>
+      <div class="btnrow">
+        <button data-wheel="LF" class="good captureBtn">Capture LF</button>
+        <button data-wheel="RF" class="good captureBtn">Capture RF</button>
+        <button data-wheel="LR" class="good captureBtn">Capture LR</button>
+        <button data-wheel="RR" class="good captureBtn">Capture RR</button>
+      </div>
+      <div class="hint">Capture stores the current filtered angle, time, and notes snapshot.</div>
+
+      <table style="margin-top:10px">
+        <thead>
+          <tr>
+            <th>Wheel</th>
+            <th>Camber / lean</th>
+            <th>Time</th>
+            <th>Notes snapshot</th>
+            <th>Clear</th>
+          </tr>
+        </thead>
+        <tbody id="camberBody"></tbody>
+      </table>
+
+      <div class="cols" style="margin-top:12px">
+        <div class="tight">
+          <div><span class="pill">Front cross camber</span> <span id="frontCross" class="mono">n/a</span></div>
+          <div><span class="pill">Rear cross camber</span> <span id="rearCross" class="mono">n/a</span></div>
+          <div><span class="pill">Left side average</span> <span id="leftAvg" class="mono">n/a</span></div>
+          <div><span class="pill">Right side average</span> <span id="rightAvg" class="mono">n/a</span></div>
+        </div>
+        <div class="tight">
+          <div class="small">Tip: use the same phone edge and same contact surface every time.</div>
+          <div class="small">The sign may flip depending on side and phone orientation, but comparisons stay useful if your method is consistent.</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="panel-caster" class="card panel">
+      <h2>Caster workflow</h2>
+      <div class="cols">
+        <div class="card" style="padding:12px">
+          <h3>Setup</h3>
+          <div class="grid">
+            <div>
+              <div class="label">Wheel being checked</div>
+              <select id="casterWheel">
+                <option value="LF">LF</option>
+                <option value="RF">RF</option>
+                <option value="LR">LR</option>
+                <option value="RR">RR</option>
+              </select>
+            </div>
+            <div>
+              <div class="label">Steer angle each side (degrees)</div>
+              <input id="casterSteerAngle" type="number" inputmode="decimal" value="20" step="0.1" />
+            </div>
+          </div>
+          <p class="hint">
+            Use turn plates, printed angle marks, or another steering-angle reference. The math below assumes equal left/right angles.
+          </p>
+        </div>
+
+        <div class="card" style="padding:12px">
+          <h3>Capture sweep</h3>
+          <div class="btnrow">
+            <button id="casterInBtn" class="good">Capture left / inboard turn reading</button>
+            <button id="casterOutBtn" class="good">Capture right / outboard turn reading</button>
+            <button id="casterCalcBtn" class="primary">Calculate caster</button>
+            <button id="casterClearBtn">Clear caster sweep</button>
+          </div>
+          <div class="tight" style="margin-top:10px">
+            <div><span class="pill">Reading A</span> <span id="casterInVal" class="mono">n/a</span></div>
+            <div><span class="pill">Reading B</span> <span id="casterOutVal" class="mono">n/a</span></div>
+            <div><span class="pill">Estimated caster</span> <span id="casterResult" class="mono">n/a</span></div>
+          </div>
+          <p class="hint">
+            This uses camber change across a known steering sweep. It is an approximation, but it is useful when the wheel is turned the same amount each way.
+          </p>
+        </div>
+      </div>
+
+      <table style="margin-top:12px">
+        <thead>
+          <tr>
+            <th>Wheel</th>
+            <th>Steer angle each side</th>
+            <th>Reading A</th>
+            <th>Reading B</th>
+            <th>Estimated caster</th>
+            <th>Time</th>
+            <th>Clear</th>
+          </tr>
+        </thead>
+        <tbody id="casterBody"></tbody>
+      </table>
+    </div>
+
+    <div id="panel-toe" class="card panel">
+      <h2>Toe helper</h2>
+      <div class="cols">
+        <div class="card" style="padding:12px">
+          <h3>String / straight-edge inputs</h3>
+          <div class="grid">
+            <div>
+              <div class="label">Wheel</div>
+              <select id="toeWheel">
+                <option value="LF">LF</option>
+                <option value="RF">RF</option>
+                <option value="LR">LR</option>
+                <option value="RR">RR</option>
+              </select>
+            </div>
+            <div>
+              <div class="label">Reference method</div>
+              <select id="toeMethod">
+                <option value="string">String line</option>
+                <option value="edge">Straight edge</option>
+              </select>
+            </div>
+            <div>
+              <div class="label">Front gap to reference (mm)</div>
+              <input id="toeFrontGap" type="number" inputmode="decimal" step="0.1" />
+            </div>
+            <div>
+              <div class="label">Rear gap to reference (mm)</div>
+              <input id="toeRearGap" type="number" inputmode="decimal" step="0.1" />
+            </div>
+            <div>
+              <div class="label">Measurement span on wheel/rim (mm)</div>
+              <input id="toeSpan" type="number" inputmode="decimal" value="400" step="0.1" />
+            </div>
+          </div>
+          <div class="btnrow">
+            <button id="toeCalcBtn" class="primary">Calculate toe</button>
+            <button id="toeStoreBtn" class="good">Store toe result</button>
+            <button id="toeClearInputBtn">Clear toe inputs</button>
+          </div>
+          <p class="hint">
+            Toe angle is based on the difference between front and rear gaps over the span where you measured.
+            Positive/negative sign depends on how you set up your strings and which side of the car you are on.
+          </p>
+        </div>
+
+        <div class="card" style="padding:12px">
+          <h3>Current toe result</h3>
+          <div class="meter" style="min-height:160px">
+            <div>
+              <div id="toeCurrent" class="big">n/a</div>
+              <div id="toeCurrentLabel" class="small">enter front and rear gaps</div>
+            </div>
+          </div>
+          <div class="tight" style="margin-top:10px">
+            <div><span class="pill">Gap difference</span> <span id="toeDiff" class="mono">n/a</span></div>
+            <div><span class="pill">Toe angle</span> <span id="toeAngleDeg" class="mono">n/a</span></div>
+            <div><span class="pill">Approx. toe in minutes</span> <span id="toeAngleMin" class="mono">n/a</span></div>
+          </div>
+        </div>
+      </div>
+
+      <table style="margin-top:12px">
+        <thead>
+          <tr>
+            <th>Wheel</th>
+            <th>Method</th>
+            <th>Front gap</th>
+            <th>Rear gap</th>
+            <th>Span</th>
+            <th>Toe angle</th>
+            <th>Time</th>
+            <th>Clear</th>
+          </tr>
+        </thead>
+        <tbody id="toeBody"></tbody>
+      </table>
+    </div>
+
+    <div id="panel-job" class="card panel">
+      <h2>Job info and export</h2>
+      <div class="cols">
+        <div class="grid">
+          <input id="vehicleInput" placeholder="Vehicle / plate / customer" />
+          <input id="jobInput" placeholder="Job or test name" />
+          <textarea id="notesInput" placeholder="Notes: reference plane used, tire pressure, ride height, wheel face used, steering marks, floor slope, etc."></textarea>
+        </div>
+        <div class="grid">
+          <button id="saveBtn">Save on device</button>
+          <button id="loadBtn">Reload saved</button>
+          <button id="csvBtn">Export CSV</button>
+          <button id="jsonBtn">Export JSON</button>
+          <button id="resetBtn" class="bad">Reset all</button>
+        </div>
+      </div>
+      <p class="hint">
+        Save uses browser local storage. Export downloads a file directly to the iPhone.
+      </p>
+    </div>
+
+    <div class="card footer">
+      <strong>Important:</strong> This is a field tool, not a replacement for a professional alignment rack.
+      It is strongest for camber, useful for caster with a good steering-angle reference, and useful for toe only when paired with strings or straight edges.
     </div>
   </div>
 
   <script>
-    const startBtn = document.getElementById('startBtn');
-    const statusEl = document.getElementById('status');
-    const orientationEl = document.getElementById('orientation');
-    const motionEl = document.getElementById('motion');
+    const $ = id => document.getElementById(id);
 
-    let listening = false;
+    const state = {
+      listening: false,
+      hold: false,
+      zeroOffset: 0,
+      liveAngle: null,
+      rawAngle: null,
+      gravity: {x:0, y:0, z:0},
+      camber: {LF:null, RF:null, LR:null, RR:null},
+      caster: {LF:null, RF:null, LR:null, RR:null},
+      toe: {LF:null, RF:null, LR:null, RR:null},
+      tempToe: null,
+      tempCaster: {inboard:null, outboard:null}
+    };
 
-    function fmt(v, digits = 3) {
-      return (typeof v === 'number' && Number.isFinite(v)) ? v.toFixed(digits) : 'n/a';
+    function fmtDeg(v, digits=2){ return (typeof v === 'number' && Number.isFinite(v)) ? `${v.toFixed(digits)}°` : 'n/a'; }
+    function fmtNum(v, digits=2, suffix=''){ return (typeof v === 'number' && Number.isFinite(v)) ? `${v.toFixed(digits)}${suffix}` : 'n/a'; }
+    function nowStamp(){ return new Date().toLocaleString(); }
+
+    function setStatus(text, cls=''){
+      $('status').className = `hint ${cls}`.trim();
+      $('status').textContent = `Status: ${text}`;
     }
 
-    function setStatus(text, cls = '') {
-      statusEl.className = `small ${cls}`.trim();
-      statusEl.textContent = `Status: ${text}`;
+    function lowPass(next, prev, alpha=0.16){ return prev + alpha*(next-prev); }
+
+    function computeWheelLeanFromGravity(gx, gy, gz){
+      let angle = Math.atan2(gx, -gy) * 180 / Math.PI;
+      if (!Number.isFinite(angle)) return null;
+      return angle;
     }
 
-    function handleOrientation(event) {
-      orientationEl.textContent =
-        `alpha (z): ${fmt(event.alpha)}°\n` +
-        `beta  (x): ${fmt(event.beta)}°\n` +
-        `gamma (y): ${fmt(event.gamma)}°\n` +
-        `absolute: ${String(event.absolute)}`;
-    }
-
-    function handleMotion(event) {
-      const a = event.acceleration || {};
-      const ag = event.accelerationIncludingGravity || {};
-      const r = event.rotationRate || {};
-
-      motionEl.textContent =
-        `interval: ${fmt(event.interval, 1)} ms\n\n` +
-        `acc x: ${fmt(a.x)} m/s²\n` +
-        `acc y: ${fmt(a.y)} m/s²\n` +
-        `acc z: ${fmt(a.z)} m/s²\n\n` +
-        `acc+g x: ${fmt(ag.x)} m/s²\n` +
-        `acc+g y: ${fmt(ag.y)} m/s²\n` +
-        `acc+g z: ${fmt(ag.z)} m/s²\n\n` +
-        `rot alpha: ${fmt(r.alpha)} °/s\n` +
-        `rot beta:  ${fmt(r.beta)} °/s\n` +
-        `rot gamma: ${fmt(r.gamma)} °/s`;
-    }
-
-    async function requestIfNeeded(EventType) {
-      if (typeof EventType === 'undefined') return 'unsupported';
-      if (typeof EventType.requestPermission === 'function') {
-        return await EventType.requestPermission();
+    function updateLiveUI(){
+      if (state.liveAngle == null){
+        $('liveValue').textContent = '--.-°';
+        $('liveLabel').textContent = 'waiting for sensor data';
+        $('rawValue').textContent = '--.-°';
+      } else {
+        $('liveValue').textContent = `${state.liveAngle.toFixed(2)}°`;
+        $('liveLabel').textContent = state.hold ? 'frozen reading' : 'relative angle from reference zero';
+        $('rawValue').textContent = `${state.rawAngle.toFixed(2)}°`;
       }
+      $('zeroValue').textContent = `${state.zeroOffset.toFixed(2)}°`;
+    }
+
+    function onMotion(event){
+      if (state.hold) return;
+      const ag = event.accelerationIncludingGravity;
+      if (!ag) return;
+      if (![ag.x, ag.y, ag.z].every(v => typeof v === 'number' && Number.isFinite(v))) return;
+
+      state.gravity.x = lowPass(ag.x, state.gravity.x);
+      state.gravity.y = lowPass(ag.y, state.gravity.y);
+      state.gravity.z = lowPass(ag.z, state.gravity.z);
+
+      const raw = computeWheelLeanFromGravity(state.gravity.x, state.gravity.y, state.gravity.z);
+      if (raw == null) return;
+
+      state.rawAngle = raw;
+      state.liveAngle = raw - state.zeroOffset;
+
+      const mag = Math.sqrt(state.gravity.x**2 + state.gravity.y**2 + state.gravity.z**2);
+      $('filterState').textContent = `${mag.toFixed(2)} g total | LPF active`;
+      updateLiveUI();
+    }
+
+    async function requestMotionPermission(){
+      if (typeof DeviceMotionEvent === 'undefined') return 'unsupported';
+      if (typeof DeviceMotionEvent.requestPermission === 'function') return await DeviceMotionEvent.requestPermission();
       return 'granted';
     }
 
-    async function startSensors() {
-      if (listening) return;
-
-      const secureContextNeeded = location.protocol === 'https:' ||
-                                  location.hostname === 'localhost' ||
-                                  location.hostname === '127.0.0.1';
-
-      if (!secureContextNeeded) {
-        setStatus('this page may be blocked unless served from HTTPS or localhost', 'warn');
-      } else {
-        setStatus('requesting permission…');
-      }
-
-      try {
-        const motionPermission = await requestIfNeeded(window.DeviceMotionEvent);
-        const orientationPermission = await requestIfNeeded(window.DeviceOrientationEvent);
-
-        const motionOK = (motionPermission === 'granted' || motionPermission === 'unsupported');
-        const orientationOK = (orientationPermission === 'granted' || orientationPermission === 'unsupported');
-
-        if (!motionOK && !orientationOK) {
-          setStatus('permission denied or unavailable', 'err');
+    async function startSensors(){
+      try{
+        setStatus('requesting sensor permission…');
+        const perm = await requestMotionPermission();
+        if (perm !== 'granted' && perm !== 'unsupported'){
+          setStatus('permission denied', 'badtext');
           return;
         }
-
-        if ('DeviceOrientationEvent' in window) {
-          window.addEventListener('deviceorientation', handleOrientation, true);
-        } else {
-          orientationEl.textContent = 'DeviceOrientationEvent is not available in this browser.';
+        if (!state.listening){
+          window.addEventListener('devicemotion', onMotion, true);
+          state.listening = true;
         }
-
-        if ('DeviceMotionEvent' in window) {
-          window.addEventListener('devicemotion', handleMotion, true);
-        } else {
-          motionEl.textContent = 'DeviceMotionEvent is not available in this browser.';
-        }
-
-        listening = true;
-        startBtn.disabled = true;
-        startBtn.textContent = 'Sensors running';
-        setStatus('streaming sensor data', 'ok');
-      } catch (err) {
-        setStatus(`error: ${err && err.message ? err.message : String(err)}`, 'err');
+        setStatus('streaming motion data', 'ok');
+      } catch(err){
+        setStatus(`sensor error: ${err && err.message ? err.message : String(err)}`, 'badtext');
       }
     }
 
-    startBtn.addEventListener('click', startSensors);
+    function setZero(){
+      if (state.rawAngle == null){
+        setStatus('need a live reading before setting zero', 'warntext');
+        return;
+      }
+      state.zeroOffset = state.rawAngle;
+      updateLiveUI();
+      saveLocal();
+      setStatus(`reference zero set to ${state.zeroOffset.toFixed(2)}°`, 'ok');
+    }
+
+    function clearZero(){
+      state.zeroOffset = 0;
+      updateLiveUI();
+      saveLocal();
+      setStatus('reference zero cleared');
+    }
+
+    function toggleHold(btn){
+      state.hold = !state.hold;
+      btn.textContent = state.hold ? 'Resume live reading' : 'Freeze live reading';
+      updateLiveUI();
+    }
+
+    function captureCamber(wheel){
+      if (state.liveAngle == null){
+        setStatus('no stable reading to capture yet', 'warntext');
+        return;
+      }
+      state.camber[wheel] = {
+        angle: state.liveAngle,
+        rawAngle: state.rawAngle,
+        zeroOffset: state.zeroOffset,
+        time: nowStamp(),
+        notes: $('notesInput').value.trim()
+      };
+      renderCamber();
+      saveLocal();
+      setStatus(`captured ${wheel} camber at ${state.liveAngle.toFixed(2)}°`, 'ok');
+    }
+
+    function renderCamber(){
+      const body = $('camberBody');
+      body.innerHTML = '';
+      ['LF','RF','LR','RR'].forEach(w => {
+        const r = state.camber[w];
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${w}</strong></td>
+          <td class="mono">${r ? r.angle.toFixed(2)+'°' : '—'}</td>
+          <td class="small">${r ? esc(r.time) : '—'}</td>
+          <td class="small">${r ? esc(r.notes || '—') : '—'}</td>
+          <td><button data-clear-camber="${w}">Clear</button></td>
+        `;
+        body.appendChild(tr);
+      });
+      body.querySelectorAll('button[data-clear-camber]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.camber[btn.dataset.clearCamber] = null;
+          renderCamber();
+          saveLocal();
+        });
+      });
+      updateCamberDerived();
+    }
+
+    function updateCamberDerived(){
+      const val = w => state.camber[w] && typeof state.camber[w].angle === 'number' ? state.camber[w].angle : null;
+      const avg = arr => {
+        const nums = arr.filter(v => typeof v === 'number');
+        return nums.length ? nums.reduce((a,b)=>a+b,0) / nums.length : null;
+      };
+      const lf = val('LF'), rf = val('RF'), lr = val('LR'), rr = val('RR');
+      $('frontCross').textContent = (lf != null && rf != null) ? `${(lf-rf).toFixed(2)}°` : 'n/a';
+      $('rearCross').textContent = (lr != null && rr != null) ? `${(lr-rr).toFixed(2)}°` : 'n/a';
+      $('leftAvg').textContent = avg([lf,lr]) != null ? `${avg([lf,lr]).toFixed(2)}°` : 'n/a';
+      $('rightAvg').textContent = avg([rf,rr]) != null ? `${avg([rf,rr]).toFixed(2)}°` : 'n/a';
+    }
+
+    function captureCaster(side){
+      if (state.liveAngle == null){
+        setStatus('no live reading to capture', 'warntext');
+        return;
+      }
+      state.tempCaster[side] = {
+        reading: state.liveAngle,
+        time: nowStamp()
+      };
+      $('casterInVal').textContent = state.tempCaster.inboard ? `${state.tempCaster.inboard.reading.toFixed(2)}°` : 'n/a';
+      $('casterOutVal').textContent = state.tempCaster.outboard ? `${state.tempCaster.outboard.reading.toFixed(2)}°` : 'n/a';
+      setStatus(`captured caster ${side} reading`, 'ok');
+    }
+
+    function calcCaster(){
+      const A = state.tempCaster.inboard;
+      const B = state.tempCaster.outboard;
+      const wheel = $('casterWheel').value;
+      const steer = parseFloat($('casterSteerAngle').value);
+      if (!A || !B || !Number.isFinite(steer) || steer <= 0){
+        setStatus('need both caster readings and a valid steer angle', 'warntext');
+        return;
+      }
+
+      const a = A.reading * Math.PI / 180;
+      const b = B.reading * Math.PI / 180;
+      const steerRad = steer * Math.PI / 180;
+
+      const casterRad = Math.atan((Math.tan(b) - Math.tan(a)) / (2 * Math.sin(steerRad)));
+      const casterDeg = casterRad * 180 / Math.PI;
+
+      state.caster[wheel] = {
+        steerAngleEachSide: steer,
+        readingA: A.reading,
+        readingB: B.reading,
+        estimatedCaster: casterDeg,
+        time: nowStamp()
+      };
+      $('casterResult').textContent = `${casterDeg.toFixed(2)}°`;
+      renderCaster();
+      saveLocal();
+      setStatus(`estimated ${wheel} caster at ${casterDeg.toFixed(2)}°`, 'ok');
+    }
+
+    function renderCaster(){
+      const body = $('casterBody');
+      body.innerHTML = '';
+      ['LF','RF','LR','RR'].forEach(w => {
+        const r = state.caster[w];
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${w}</strong></td>
+          <td class="mono">${r ? r.steerAngleEachSide.toFixed(1)+'°' : '—'}</td>
+          <td class="mono">${r ? r.readingA.toFixed(2)+'°' : '—'}</td>
+          <td class="mono">${r ? r.readingB.toFixed(2)+'°' : '—'}</td>
+          <td class="mono">${r ? r.estimatedCaster.toFixed(2)+'°' : '—'}</td>
+          <td class="small">${r ? esc(r.time) : '—'}</td>
+          <td><button data-clear-caster="${w}">Clear</button></td>
+        `;
+        body.appendChild(tr);
+      });
+      body.querySelectorAll('button[data-clear-caster]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.caster[btn.dataset.clearCaster] = null;
+          renderCaster();
+          saveLocal();
+        });
+      });
+    }
+
+    function clearCasterSweep(){
+      state.tempCaster = {inboard:null, outboard:null};
+      $('casterInVal').textContent = 'n/a';
+      $('casterOutVal').textContent = 'n/a';
+      $('casterResult').textContent = 'n/a';
+      setStatus('caster sweep cleared');
+    }
+
+    function calcToe(){
+      const front = parseFloat($('toeFrontGap').value);
+      const rear = parseFloat($('toeRearGap').value);
+      const span = parseFloat($('toeSpan').value);
+      if (![front, rear, span].every(v => Number.isFinite(v)) || span <= 0){
+        setStatus('enter valid toe front gap, rear gap, and span', 'warntext');
+        return;
+      }
+      const diff = rear - front;
+      const angleRad = Math.atan(diff / span);
+      const angleDeg = angleRad * 180 / Math.PI;
+      const angleMin = angleDeg * 60;
+
+      state.tempToe = {
+        wheel: $('toeWheel').value,
+        method: $('toeMethod').value,
+        frontGap: front,
+        rearGap: rear,
+        span,
+        diff,
+        angleDeg,
+        angleMin,
+        time: nowStamp()
+      };
+
+      $('toeCurrent').textContent = `${angleDeg.toFixed(2)}°`;
+      $('toeCurrentLabel').textContent = diff > 0 ? 'rear gap larger than front gap' : diff < 0 ? 'front gap larger than rear gap' : 'zero difference';
+      $('toeDiff').textContent = `${diff.toFixed(2)} mm`;
+      $('toeAngleDeg').textContent = `${angleDeg.toFixed(3)}°`;
+      $('toeAngleMin').textContent = `${angleMin.toFixed(1)}'`;
+      setStatus('toe result calculated', 'ok');
+    }
+
+    function storeToe(){
+      if (!state.tempToe){
+        setStatus('calculate toe first', 'warntext');
+        return;
+      }
+      const w = state.tempToe.wheel;
+      state.toe[w] = {...state.tempToe};
+      renderToe();
+      saveLocal();
+      setStatus(`stored ${w} toe result`, 'ok');
+    }
+
+    function clearToeInputs(){
+      $('toeFrontGap').value = '';
+      $('toeRearGap').value = '';
+      $('toeSpan').value = '400';
+      state.tempToe = null;
+      $('toeCurrent').textContent = 'n/a';
+      $('toeCurrentLabel').textContent = 'enter front and rear gaps';
+      $('toeDiff').textContent = 'n/a';
+      $('toeAngleDeg').textContent = 'n/a';
+      $('toeAngleMin').textContent = 'n/a';
+      setStatus('toe inputs cleared');
+    }
+
+    function renderToe(){
+      const body = $('toeBody');
+      body.innerHTML = '';
+      ['LF','RF','LR','RR'].forEach(w => {
+        const r = state.toe[w];
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${w}</strong></td>
+          <td>${r ? esc(r.method) : '—'}</td>
+          <td class="mono">${r ? r.frontGap.toFixed(2)+' mm' : '—'}</td>
+          <td class="mono">${r ? r.rearGap.toFixed(2)+' mm' : '—'}</td>
+          <td class="mono">${r ? r.span.toFixed(2)+' mm' : '—'}</td>
+          <td class="mono">${r ? r.angleDeg.toFixed(3)+'°' : '—'}</td>
+          <td class="small">${r ? esc(r.time) : '—'}</td>
+          <td><button data-clear-toe="${w}">Clear</button></td>
+        `;
+        body.appendChild(tr);
+      });
+      body.querySelectorAll('button[data-clear-toe]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          state.toe[btn.dataset.clearToe] = null;
+          renderToe();
+          saveLocal();
+        });
+      });
+    }
+
+    function esc(s){
+      return String(s)
+        .replaceAll('&','&amp;')
+        .replaceAll('<','&lt;')
+        .replaceAll('>','&gt;')
+        .replaceAll('"','&quot;');
+    }
+
+    function localPayload(){
+      return {
+        vehicle: $('vehicleInput').value,
+        job: $('jobInput').value,
+        notes: $('notesInput').value,
+        zeroOffset: state.zeroOffset,
+        camber: state.camber,
+        caster: state.caster,
+        toe: state.toe,
+        savedAt: new Date().toISOString(),
+        version: 2
+      };
+    }
+
+    function saveLocal(){
+      localStorage.setItem('iphone_alignment_assistant', JSON.stringify(localPayload()));
+    }
+
+    function loadLocal(){
+      const raw = localStorage.getItem('iphone_alignment_assistant');
+      if (!raw){
+        setStatus('no saved data found', 'warntext');
+        return;
+      }
+      try{
+        const data = JSON.parse(raw);
+        $('vehicleInput').value = data.vehicle || '';
+        $('jobInput').value = data.job || '';
+        $('notesInput').value = data.notes || '';
+        state.zeroOffset = typeof data.zeroOffset === 'number' ? data.zeroOffset : 0;
+        state.camber = data.camber || state.camber;
+        state.caster = data.caster || state.caster;
+        state.toe = data.toe || state.toe;
+        renderCamber();
+        renderCaster();
+        renderToe();
+        updateLiveUI();
+        setStatus('saved data loaded', 'ok');
+      } catch(e){
+        setStatus('saved data is unreadable', 'badtext');
+      }
+    }
+
+    function download(name, text, type){
+      const blob = new Blob([text], {type});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function safeName(s){
+      return String(s).trim().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'job';
+    }
+
+    function exportJSON(){
+      const name = `alignment-${safeName($('jobInput').value || $('vehicleInput').value || 'job')}.json`;
+      download(name, JSON.stringify(localPayload(), null, 2), 'application/json');
+    }
+
+    function exportCSV(){
+      const p = localPayload();
+      const rows = [
+        ['vehicle', p.vehicle],
+        ['job', p.job],
+        ['notes', p.notes.replaceAll('\n', ' ')],
+        ['zeroOffsetDeg', p.zeroOffset],
+        [],
+        ['CAMBER'],
+        ['wheel', 'angleDeg', 'time'],
+        ...['LF','RF','LR','RR'].map(w => [w, p.camber[w]?.angle ?? '', p.camber[w]?.time ?? '']),
+        [],
+        ['CASTER'],
+        ['wheel', 'steerAngleEachSideDeg', 'readingA', 'readingB', 'estimatedCasterDeg', 'time'],
+        ...['LF','RF','LR','RR'].map(w => [w, p.caster[w]?.steerAngleEachSide ?? '', p.caster[w]?.readingA ?? '', p.caster[w]?.readingB ?? '', p.caster[w]?.estimatedCaster ?? '', p.caster[w]?.time ?? '']),
+        [],
+        ['TOE'],
+        ['wheel', 'method', 'frontGapMm', 'rearGapMm', 'spanMm', 'toeAngleDeg', 'time'],
+        ...['LF','RF','LR','RR'].map(w => [w, p.toe[w]?.method ?? '', p.toe[w]?.frontGap ?? '', p.toe[w]?.rearGap ?? '', p.toe[w]?.span ?? '', p.toe[w]?.angleDeg ?? '', p.toe[w]?.time ?? ''])
+      ];
+      const csv = rows.map(row => row.map(cell => {
+        const s = String(cell ?? '');
+        return /[",\n]/.test(s) ? `"${s.replaceAll('"', '""')}"` : s;
+      }).join(',')).join('\n');
+      const name = `alignment-${safeName($('jobInput').value || $('vehicleInput').value || 'job')}.csv`;
+      download(name, csv, 'text/csv');
+    }
+
+    function resetAll(){
+      if (!confirm('Reset all saved readings and notes on this page?')) return;
+      $('vehicleInput').value = '';
+      $('jobInput').value = '';
+      $('notesInput').value = '';
+      state.zeroOffset = 0;
+      state.camber = {LF:null, RF:null, LR:null, RR:null};
+      state.caster = {LF:null, RF:null, LR:null, RR:null};
+      state.toe = {LF:null, RF:null, LR:null, RR:null};
+      state.tempToe = null;
+      clearCasterSweep();
+      clearToeInputs();
+      renderCamber();
+      renderCaster();
+      renderToe();
+      updateLiveUI();
+      saveLocal();
+      setStatus('all job data reset');
+    }
+
+    function setTab(name){
+      document.querySelectorAll('.tab').forEach(btn => btn.classList.toggle('active', btn.dataset.tab === name));
+      document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
+    }
+
+    $('startBtn').addEventListener('click', startSensors);
+    $('holdBtn').addEventListener('click', e => toggleHold(e.target));
+    $('zeroBtn').addEventListener('click', setZero);
+    $('clearZeroBtn').addEventListener('click', clearZero);
+
+    document.querySelectorAll('.captureBtn').forEach(btn => btn.addEventListener('click', () => captureCamber(btn.dataset.wheel)));
+    $('casterInBtn').addEventListener('click', () => captureCaster('inboard'));
+    $('casterOutBtn').addEventListener('click', () => captureCaster('outboard'));
+    $('casterCalcBtn').addEventListener('click', calcCaster);
+    $('casterClearBtn').addEventListener('click', clearCasterSweep);
+
+    $('toeCalcBtn').addEventListener('click', calcToe);
+    $('toeStoreBtn').addEventListener('click', storeToe);
+    $('toeClearInputBtn').addEventListener('click', clearToeInputs);
+
+    $('saveBtn').addEventListener('click', () => { saveLocal(); setStatus('saved on device', 'ok'); });
+    $('loadBtn').addEventListener('click', loadLocal);
+    $('csvBtn').addEventListener('click', exportCSV);
+    $('jsonBtn').addEventListener('click', exportJSON);
+    $('resetBtn').addEventListener('click', resetAll);
+
+    ['vehicleInput','jobInput','notesInput'].forEach(id => {
+      $(id).addEventListener('input', saveLocal);
+      $(id).addEventListener('change', saveLocal);
+    });
+
+    document.querySelectorAll('.tab').forEach(btn => btn.addEventListener('click', () => setTab(btn.dataset.tab)));
+
+    renderCamber();
+    renderCaster();
+    renderToe();
+    updateLiveUI();
+    loadLocal();
   </script>
 </body>
 </html>
